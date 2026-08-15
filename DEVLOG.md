@@ -309,7 +309,7 @@ principales que la version PostgreSQL.
 
 ---
 
-### ⚠️ Difficultés et obstacles rencontrés
+###  Difficultés et obstacles rencontrés
 
 #### 1. Passage du diagramme de classes vers le modèle relationnel
 
@@ -408,4 +408,127 @@ Pour résoudre ces difficultés :
   ajoutées.
 
 
+
+
+### Step 1.3 — Singleton Database & Fallback Automatique
+
+ 
+**Horaire :** 9h00 - 10h50  
+**Statut :** Terminé
+
+---
+
+### 🎯 Objectif
+
+L'objectif de cette étape est de mettre en place une classe
+centrale permettant de gérer la connexion à la base de données
+de l'application.
+
+Le livrable demandé est :
+
+    src/Core/Database.php
+
+Cette classe doit permettre :
+
+- d'utiliser le pattern Singleton ;
+- d'établir une connexion PDO à PostgreSQL ;
+- de détecter une erreur de connexion PostgreSQL ;
+- de basculer automatiquement vers SQLite ;
+
+
+---
+
+###  Mise en place du Singleton
+
+Le pattern Singleton a été utilisé afin d'éviter de créer plusieurs
+instances de la classe `Database`.
+
+La classe contient une propriété statique :
+
+    private static ?Database $instance = null;
+
+Le constructeur de la classe est privé :
+
+    private function __construct()
+
+Cela empêche la création directe d'une instance avec :
+
+    new Database();
+
+L'accès à l'instance se fait avec la méthode :
+
+    Database::getInstance();
+
+La méthode vérifie si une instance existe déjà.
+
+Si aucune instance n'existe, elle est créée.
+
+Sinon, l'instance existante est retournée.
+
+Cela permet à l'ensemble de l'application de réutiliser la même
+instance de `Database`.
+
+---
+
+###  Connexion PostgreSQL
+
+La connexion principale de l'application est PostgreSQL.
+
+La connexion est réalisée avec PDO.
+
+Le principe utilisé est :
+
+    try {
+        // Connexion PostgreSQL
+    }
+
+La connexion PostgreSQL est donc tentée en priorité.
+
+Le mode :
+
+    PDO::ERRMODE_EXCEPTION
+
+est utilisé afin que les erreurs de connexion ou d'exécution
+puissent être détectées sous forme d'exceptions.
+
+---
+
+### Fallback automatique vers SQLite
+
+Si la connexion PostgreSQL échoue, l'exception `PDOException`
+est récupérée avec :
+
+    catch (PDOException $e)
+
+Dans ce cas, l'application ne s'arrête pas immédiatement.
+
+Elle utilise automatiquement SQLite comme solution de secours.
+
+La base SQLite utilisée est :
+
+    erp.db
+
+Le fonctionnement est donc :
+
+    Application
+         |
+         v
+      Database
+      Singleton
+         |
+         v
+    PostgreSQL ?
+       /     \
+     Oui      Non
+      |        |
+      v        v
+ PostgreSQL   SQLite
+               |
+               v
+             erp.db
+
+Cette stratégie permet à l'application de disposer d'une base
+locale de secours lorsque PostgreSQL n'est pas disponible.
+
+---
 
