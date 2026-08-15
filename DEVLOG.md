@@ -169,3 +169,243 @@ Il a fallu identifier :
 - leurs méthodes ;
 - les associations entre les classes ;
 - les cardinalités.
+
+
+
+
+### Step 1.2 — Schéma SQL PostgreSQL / SQLite
+
+**Date :** Vendredi 14 Août 2026  
+**Horaire :** 20h30 - 22h00  
+**Statut :** Terminé
+
+---
+
+###  Objectif
+
+L'objectif de cette étape est de transformer le modèle UML réalisé
+lors du Step 1.1 en un schéma de base de données relationnelle.
+
+Deux scripts SQL ont été créés afin de permettre à l'application
+de fonctionner avec deux systèmes de gestion de base de données :
+
+- PostgreSQL
+- SQLite
+
+Les fichiers créés sont :
+
+    schema.sql
+    schema_sqlite.sql
+
+Le schéma respecte les principales classes et relations définies
+dans le diagramme de classes.
+
+---
+
+###  Tables créées
+
+À partir du diagramme de classes, les principales tables suivantes
+ont été créées :
+
+- `roles`
+- `utilisateurs`
+- `clients`
+- `fournisseurs`
+- `produits`
+- `modes_paiement`
+- `ventes`
+- `lignes_vente`
+- `dettes`
+- `paiements`
+- `approvisionnements`
+- `lignes_approvisionnement`
+
+Ces tables permettent de représenter les principales données
+métier de StoreManager Pro.
+
+
+
+---
+
+###  Contraintes SQL
+
+Des contraintes `PRIMARY KEY` ont été utilisées pour identifier
+de manière unique les enregistrements.
+
+Des contraintes `UNIQUE` ont également été ajoutées pour certaines
+données qui doivent être uniques, notamment :
+
+- email utilisateur ;
+- code produit ;
+- numéro de facture ;
+- référence de dette ;
+- référence de paiement ;
+- référence de bon de livraison.
+
+Des contraintes `CHECK` ont été ajoutées pour contrôler les valeurs
+enregistrées.
+
+Exemples :
+
+- le prix d'un produit ne peut pas être négatif ;
+- le stock ne peut pas être négatif ;
+- une quantité doit être positive ;
+- un montant de paiement doit être positif ;
+- le montant versé d'une vente ne peut pas dépasser son montant
+  total.
+
+---
+
+###  Version PostgreSQL
+
+Le fichier :
+
+    schema.sql
+
+utilise les fonctionnalités adaptées à PostgreSQL.
+
+Les identifiants utilisent notamment :
+
+    SERIAL PRIMARY KEY
+
+Les montants financiers utilisent :
+
+    NUMERIC(15,2)
+
+Les dates utilisent :
+
+    TIMESTAMP
+
+Le script contient également les index nécessaires pour améliorer
+les recherches sur les principales clés étrangères.
+
+---
+
+###  Version SQLite
+
+Le fichier :
+
+    schema_sqlite.sql
+
+a été créé pour permettre à l'application de fonctionner avec
+SQLite comme solution de secours.
+
+SQLite utilise notamment :
+
+    INTEGER PRIMARY KEY AUTOINCREMENT
+
+Les dates sont stockées sous forme de texte avec :
+
+    CURRENT_TIMESTAMP
+
+Les clés étrangères sont activées avec :
+
+    PRAGMA foreign_keys = ON;
+
+Le schéma SQLite reprend les mêmes tables, relations et contraintes
+principales que la version PostgreSQL.
+
+
+
+---
+
+### ⚠️ Difficultés et obstacles rencontrés
+
+#### 1. Passage du diagramme de classes vers le modèle relationnel
+
+La première difficulté a été de transformer les classes UML en
+tables SQL.
+
+Il fallait déterminer pour chaque classe :
+
+- la table correspondante ;
+- la clé primaire ;
+- les attributs ;
+- les types SQL ;
+- les relations avec les autres tables.
+
+Par exemple, la classe `LigneVente` dépend à la fois d'une `Vente`
+et d'un `Produit`. Il a donc fallu créer deux clés étrangères :
+
+    vente_id
+    produit_id
+
+---
+
+#### 2. Gestion des cardinalités
+
+Une difficulté importante a été de traduire les cardinalités UML
+en contraintes SQL.
+
+Par exemple :
+
+    Vente "1" -- "*" LigneVente
+
+signifie qu'une vente peut contenir plusieurs lignes de vente.
+
+La table `lignes_vente` possède donc :
+
+    vente_id INTEGER NOT NULL
+
+avec une clé étrangère vers `ventes`.
+
+---
+
+#### 3. Différences entre PostgreSQL et SQLite
+
+Une autre difficulté a été de produire deux scripts compatibles
+avec deux SGBD différents.
+
+PostgreSQL et SQLite n'utilisent pas exactement la même syntaxe
+pour les identifiants auto-incrémentés.
+
+PostgreSQL :
+
+    SERIAL PRIMARY KEY
+
+SQLite :
+
+    INTEGER PRIMARY KEY AUTOINCREMENT
+
+Il a donc fallu adapter le schéma tout en conservant la même
+structure fonctionnelle.
+
+---
+
+#### 4. Gestion des contraintes d'intégrité
+
+Il a fallu déterminer quelles contraintes étaient nécessaires
+pour éviter les données incohérentes.
+
+Par exemple :
+
+    CHECK (prix_vente >= 0)
+
+permet d'empêcher l'enregistrement d'un prix négatif.
+
+De même :
+
+    CHECK (quantite > 0)
+
+permet d'empêcher l'enregistrement d'une quantité de produit
+incorrecte.
+
+
+###  Solutions apportées
+
+Pour résoudre ces difficultés :
+
+- chaque classe métier a été transformée en table ;
+- les identifiants ont été définis comme clés primaires ;
+- les relations UML ont été transformées en clés étrangères ;
+- les cardinalités ont été traduites en contraintes SQL ;
+- des contraintes `CHECK` ont été ajoutées pour contrôler les
+  valeurs ;
+- des contraintes `UNIQUE` ont été ajoutées pour les données
+  devant être uniques ;
+- deux versions du schéma ont été créées pour PostgreSQL et SQLite ;
+- les données initiales des rôles et modes de paiement ont été
+  ajoutées.
+
+
+
