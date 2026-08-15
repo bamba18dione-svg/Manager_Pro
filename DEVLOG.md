@@ -888,6 +888,37 @@ Pour résoudre ces difficultés :
 
 
 
+### Step 2.2 — Repositories & SQL sécurisé
+
+  
+**Horaire :** 13h30 - 16h40  
+**Statut :* Terminé
+
+---
+
+###  Objectif
+
+L'objectif de cette étape est de mettre en place la couche
+Repository permettant de faire le lien entre les entités POO et
+la base de données.
+
+Les Repositories sont responsables de l'accès aux données.
+
+Pour éviter la répétition du code, un `BaseRepository` a été créé.
+Les repositories spécialisés héritent de cette classe.
+
+Les classes mises en place sont :
+
+- `BaseRepository.php`
+- `ProduitRepository.php`
+- `ClientRepository.php`
+- `FournisseurRepository.php`
+
+---
+
+
+
+
 
 
 
