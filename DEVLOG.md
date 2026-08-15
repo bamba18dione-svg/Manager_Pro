@@ -532,3 +532,363 @@ locale de secours lorsque PostgreSQL n'est pas disponible.
 
 ---
 
+
+
+
+### Step 2.1 — Entités POO Pure
+ 
+**Horaire :** 11h00 - 13h20  
+**Statut :** Terminé
+
+---
+
+### 🎯 Objectif
+
+L'objectif de cette étape est de transformer le modèle de données
+défini dans le diagramme de classes UML en véritables classes PHP.
+
+Les entités représentent les objets métier principaux de
+l'application StoreManager Pro.
+
+Elles sont placées dans :
+
+    src/Model/Entity/
+
+L'objectif est également d'appliquer les principes de la
+programmation orientée objet, notamment :
+
+- l'encapsulation ;
+- les propriétés privées ;
+- les constructeurs ;
+- les méthodes métier ;
+- les types des propriétés et des paramètres ;
+- les relations entre les différentes entités.
+
+---
+
+### 📁 Entités créées
+
+Les classes suivantes ont été créées :
+
+    src/Model/Entity/
+    │
+    ├── Role.php
+    ├── Utilisateur.php
+    ├── Client.php
+    ├── Fournisseur.php
+    ├── Produit.php
+    ├── Vente.php
+    ├── LigneVente.php
+    ├── Dette.php
+    ├── Paiement.php
+    ├── ModePaiement.php
+    ├── Approvisionnement.php
+    └── LigneApprovisionnement.php
+
+Chaque classe correspond à une entité présente dans le modèle
+UML et dans le schéma de base de données.
+
+---
+
+###  Encapsulation
+
+Les propriétés des entités ont été déclarées `private`.
+
+Par exemple, dans `Produit.php` :
+
+    private int $id;
+    private string $code;
+    private string $libelle;
+    private float $prixVente;
+    private float $coutAchat;
+    private int $stockActuel;
+
+Les données internes de l'objet ne peuvent donc pas être
+modifiées directement depuis l'extérieur de la classe.
+
+Les méthodes publiques permettent de contrôler les opérations
+réalisées sur ces données.
+
+---
+
+###  Méthodes métier
+
+Les entités ne contiennent pas uniquement des attributs.
+
+Certaines règles métier simples sont directement implémentées
+dans les classes.
+
+#### Produit
+
+La classe `Produit` possède notamment :
+
+    updateStock()
+    getStockValue()
+    isStockLow()
+    getMarge()
+    getTauxMarge()
+
+Par exemple, `updateStock()` permet de modifier le stock tout en
+empêchant qu'il devienne négatif.
+
+---
+
+#### Client
+
+La classe `Client` possède :
+
+    getFullName()
+    getCreditRemaining()
+    canAfford()
+    updateSolde()
+    getDettesActives()
+
+Ces méthodes permettent notamment de vérifier la capacité d'un
+client à effectuer un achat à crédit.
+
+---
+
+#### Dette
+
+La classe `Dette` contient notamment :
+
+    getResteDu()
+    isSold()
+    applyPayment()
+    updateStatut()
+    getPaiements()
+
+La méthode `applyPayment()` permet d'appliquer un remboursement
+à une dette.
+
+Elle vérifie également que le montant du paiement ne dépasse pas
+le montant restant.
+
+---
+
+#### Vente
+
+La classe `Vente` possède :
+
+    getRemainingAmount()
+    isFullyPaid()
+    updateStatus()
+    getMontantRestant()
+    getLignesVente()
+
+Ces méthodes permettent de déterminer le montant restant à payer
+et l'état de la vente.
+
+---
+
+#### Approvisionnement
+
+La classe `Approvisionnement` contient :
+
+    isReceived()
+    calculateTotal()
+    updateStatut()
+    getLignesApprovisionnement()
+
+Ces méthodes permettent notamment de déterminer si un
+approvisionnement a été réceptionné.
+
+---
+
+### 🔗 Relations entre les entités
+
+Les relations définies dans le diagramme de classes ont également
+été représentées dans les objets PHP.
+
+Par exemple :
+
+    Utilisateur → Role
+
+Un utilisateur possède un rôle.
+
+De même :
+
+    Vente → Client
+    Vente → Utilisateur
+    LigneVente → Produit
+    Dette → Client
+    Dette → Vente
+    Paiement → Dette
+    Paiement → ModePaiement
+    Approvisionnement → Fournisseur
+    LigneApprovisionnement → Produit
+
+L'objectif est d'avoir des objets qui peuvent représenter les
+relations métier plutôt que de manipuler uniquement des identifiants
+isolés.
+
+---
+
+### 🧮 Calculs métier intégrés
+
+Certaines opérations de calcul ont été placées directement dans
+les entités.
+
+Exemple dans `LigneVente` :
+
+    calculateSubTotal()
+
+Le sous-total est calculé à partir de :
+
+    quantité × prix unitaire
+
+Dans `Produit` :
+
+    getMarge()
+
+permet de calculer :
+
+    prix de vente - coût d'achat
+
+Et :
+
+    getTauxMarge()
+
+permet de calculer le taux de marge.
+
+---
+
+### 🛡️ Contrôle des données
+
+Des contrôles simples ont également été intégrés dans les méthodes
+métier.
+
+Par exemple, lors d'une modification du stock, l'application
+vérifie que le stock ne devient pas négatif.
+
+Pour une dette, un paiement :
+
+- doit être positif ;
+- ne doit pas dépasser le montant restant.
+
+Ces contrôles permettent de protéger la cohérence des objets
+avant même leur enregistrement en base de données.
+
+---
+
+###  Difficultés et obstacles rencontrés
+
+#### 1. Transformation du diagramme UML en classes PHP
+
+La première difficulté a été de passer du diagramme de classes
+aux fichiers PHP correspondants.
+
+Il fallait identifier :
+
+- les attributs de chaque classe ;
+- leurs types ;
+- leurs méthodes ;
+- leurs relations avec les autres classes.
+
+La solution a été de reprendre chaque classe du diagramme et de
+créer son fichier PHP correspondant.
+
+---
+
+#### 2. Compréhension de l'encapsulation
+
+Une autre difficulté a été de comprendre pourquoi les attributs
+devaient être `private`.
+
+L'utilisation de propriétés privées permet d'éviter qu'une autre
+partie de l'application modifie directement les données internes
+d'un objet.
+
+Les modifications passent donc par des méthodes métier.
+
+---
+
+#### 3. Gestion des relations entre objets
+
+Certaines entités dépendent d'autres entités.
+
+Par exemple :
+
+    LigneVente → Produit
+
+et :
+
+    Paiement → Dette
+    Paiement → ModePaiement
+
+Il a donc fallu représenter ces relations directement dans les
+classes PHP.
+
+---
+
+#### 4. Choix des responsabilités
+
+Il a fallu déterminer ce qui devait être réalisé dans les entités
+et ce qui devait être laissé aux futurs Services et Repositories.
+
+Les entités contiennent principalement :
+
+- les données ;
+- les comportements propres à l'objet ;
+- les calculs métier simples ;
+- les contrôles directement liés à l'objet.
+
+Les requêtes SQL ne sont pas placées dans les entités.
+
+Elles seront réalisées dans les classes Repository lors du
+Step 2.2.
+
+---
+
+#### 5. Différence entre Entité et Repository
+
+Une difficulté importante a été de comprendre la séparation entre
+les deux.
+
+Une entité représente un objet métier :
+
+    Produit
+    Client
+    Vente
+    Dette
+
+Le Repository sera responsable de communiquer avec la base de
+données.
+
+Ainsi :
+
+    Produit
+       ↓
+    représente un produit
+
+alors que :
+
+    ProduitRepository
+       ↓
+    récupère ou enregistre les produits en BDD
+
+Cette séparation permet de respecter une architecture POO plus
+propre.
+
+---
+
+###  Solutions apportées
+
+Pour résoudre ces difficultés :
+
+- une classe PHP a été créée pour chaque entité ;
+- les propriétés ont été encapsulées avec `private` ;
+- les types PHP ont été utilisés pour les propriétés et méthodes ;
+- les relations entre les objets ont été représentées ;
+- les calculs métier simples ont été placés dans les entités ;
+- des validations métier ont été ajoutées dans certaines méthodes ;
+- aucune requête SQL n'a été placée dans les entités ;
+- l'accès à la base de données sera réservé aux Repositories.
+
+
+
+
+
+
+
+
