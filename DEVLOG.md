@@ -1287,3 +1287,62 @@ Pour résoudre ces difficultés :
 
 
 
+
+### Step 2.4 — Controller POS & Vue Caisse
+
+
+**Horaire :** 15h00 - 18h30
+**Statut :**  Terminé
+
+---
+
+### 🎯 Objectif
+
+L'objectif de cette étape est de mettre en place le contrôleur
+responsable de la gestion de l'interface de caisse POS ainsi que
+la vue permettant au vendeur d'effectuer une vente.
+
+Cette étape permet de faire le lien entre :
+
+- l'utilisateur ;
+- la vue de la caisse ;
+- le `POSController` ;
+- le `VenteService` ;
+- les différents Repositories ;
+- la base de données.
+
+Le POS permet notamment de :
+
+- afficher les produits disponibles ;
+- sélectionner des produits ;
+- ajouter des produits au panier ;
+- modifier les quantités ;
+- calculer le total ;
+- choisir un client ;
+- choisir un mode de règlement ;
+- enregistrer une vente ;
+- afficher le résultat de l'opération.
+
+---
+Rôle du POSController
+
+Le POSController reçoit les actions effectuées depuis la vue.
+
+Il joue le rôle d'intermédiaire entre la vue et le service métier.
+
+Son rôle consiste notamment à :
+
+récupérer les données envoyées par le formulaire ;
+récupérer les produits ;
+récupérer les clients ;
+récupérer les informations du panier ;
+appeler le VenteService ;
+transmettre le résultat à la vue.
+
+Le contrôleur ne doit pas contenir les règles métier complexes.
+
+Par exemple, il ne doit pas décider directement si un produit peut
+être vendu ou si le crédit du client est suffisant.
+
+Ces règles restent dans VenteService.
+
