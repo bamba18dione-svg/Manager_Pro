@@ -918,8 +918,372 @@ Les classes mises en place sont :
 
 
 
+## Phase 2 — Cœur POO & Ventes POS
+
+### Step 2.3 — Service Métier Vente POS & Transaction SQL
+
+**Date :** Dimanche 16 Août 2026
+**Horaire :** 09h00 - 11h50
+**Statut :** Terminé
+
+---
+
+### 🎯 Objectif
+
+L'objectif de cette étape est de mettre en place le service métier
+responsable de la gestion des ventes dans le système POS.
+
+Le `VenteService` permet de gérer :
+
+- la gestion du panier ;
+- le calcul du montant total ;
+- la vérification du stock disponible ;
+- la vérification de la limite de crédit du client ;
+- la création de la vente ;
+- la création des lignes de vente ;
+- la diminution du stock ;
+- la gestion d'une transaction SQL afin de garantir la cohérence
+  des données.
+
+---
 
 
+
+### 🛒 Gestion du panier
+
+Le panier contient les produits sélectionnés pour la vente.
+
+Exemple :
+
+```php
+$panier = [
+    [
+        'produit_id' => 1,
+        'prix' => 500,
+        'quantite' => 2
+    ],
+    [
+        'produit_id' => 3,
+        'prix' => 1000,
+        'quantite' => 1
+    ]
+];
+```
+
+Le service parcourt le panier afin de calculer le montant total de
+la vente.
+
+Exemple :
+
+```text
+Produit 1 : 2 × 500 = 1 000 FCFA
+Produit 3 : 1 × 1 000 = 1 000 FCFA
+
+Total = 2 000 FCFA
+```
+
+---
+
+### 💰 Calcul du montant total
+
+La méthode `calculerTotal()` parcourt les éléments du panier et
+calcule le prix total à partir de :
+
+```text
+prix × quantité
+```
+
+Le résultat représente le montant total de la vente.
+
+---
+
+### 📦 Vérification du stock
+
+Avant de valider la vente, le `VenteService` vérifie que chaque
+produit possède une quantité suffisante en stock.
+
+Le `ProduitRepository` est utilisé pour récupérer le produit :
+
+```php
+$produit = $this->produitRepository
+    ->findProduitById($ligne['produit_id']);
+```
+
+Si le produit n'existe pas, une erreur est générée.
+
+Si la quantité demandée est supérieure au stock disponible, la vente
+est refusée.
+
+Exemple :
+
+```text
+Stock disponible : 5
+Quantité demandée : 7
+
+Résultat : Stock insuffisant
+```
+
+---
+
+### 📉 Décrémentation du stock
+
+Lorsque toutes les vérifications sont correctes, le stock est
+diminué.
+
+Exemple :
+
+```text
+Stock avant : 20
+Quantité vendue : 3
+Stock après : 17
+```
+
+La modification est effectuée avec une requête `UPDATE` dans le
+Repository :
+
+```sql
+UPDATE produits
+SET stock_actuel = stock_actuel - :quantite
+WHERE id = :id
+```
+
+---
+
+### 💳 Contrôle de la limite de crédit
+
+Si le client ne paie pas la totalité de la vente, le montant
+restant est considéré comme un crédit.
+
+Exemple :
+
+```text
+Montant total : 50 000 FCFA
+Montant versé : 20 000 FCFA
+Montant restant : 30 000 FCFA
+```
+
+Le service vérifie alors si le client peut supporter ce montant
+grâce à la méthode :
+
+```php
+$client->canAfford($montant);
+```
+
+Si la limite de crédit est dépassée, la vente est refusée.
+
+---
+
+### 🔄 Transaction SQL
+
+La vente comporte plusieurs opérations qui doivent être réalisées
+ensemble :
+
+```text
+1. Vérifier le stock
+2. Vérifier le crédit
+3. Créer la vente
+4. Créer les lignes de vente
+5. Diminuer le stock
+```
+
+Une transaction SQL est donc utilisée.
+
+Elle commence avec :
+
+```php
+$this->pdo->beginTransaction();
+```
+
+Si toutes les opérations réussissent :
+
+```php
+$this->pdo->commit();
+```
+
+En cas d'erreur :
+
+```php
+$this->pdo->rollBack();
+```
+
+Ainsi, si une étape échoue, les modifications précédentes sont
+annulées.
+
+---
+
+### 🔐 Pourquoi utiliser une transaction ?
+
+Sans transaction, on pourrait avoir une situation incohérente :
+
+```text
+Création de la vente       ✅
+Création des lignes        ❌
+Diminution du stock        ❌
+```
+
+La base de données pourrait alors contenir une vente incomplète.
+
+Avec une transaction :
+
+```text
+BEGIN TRANSACTION
+       ↓
+Opérations de vente
+       ↓
+   ┌───┴───┐
+   ↓       ↓
+Succès   Erreur
+   ↓       ↓
+COMMIT  ROLLBACK
+```
+
+Cela garantit que toutes les opérations sont validées ensemble ou
+toutes annulées.
+
+---
+
+### 🗄️ Séparation Service / Repository
+
+Une difficulté importante a été de déterminer où placer les
+requêtes SQL.
+
+Le `VenteService` contient la logique métier :
+
+```text
+- calcul du total
+- vérification du stock
+- vérification du crédit
+- orchestration de la vente
+- gestion de la transaction
+```
+
+Le `VenteRepository` contient les requêtes SQL liées aux ventes :
+
+```text
+- INSERT INTO ventes
+- INSERT INTO lignes_vente
+```
+
+Le `ProduitRepository` gère les opérations liées aux produits,
+notamment la modification du stock.
+
+L'organisation est donc :
+
+```text
+VenteService
+     ↓
+ ┌───┼───────────────┐
+ ↓   ↓               ↓
+ProduitRepo   VenteRepository   ClientRepo
+ ↓             ↓                 ↓
+Produits      Ventes            Clients
+ └─────────────┼─────────────────┘
+               ↓
+           Database
+```
+
+Cette organisation respecte la séparation des responsabilités :
+
+```text
+Service     → logique métier
+Repository  → accès aux données
+Entity      → représentation des objets métier
+Database    → connexion à la BDD
+```
+
+---
+
+### ⚠️ Difficultés et obstacles rencontrés
+
+#### 1. Comprendre le rôle du Service
+
+La première difficulté a été de distinguer le rôle du Service de
+celui du Repository.
+
+Le Repository est chargé d'accéder aux données et d'exécuter les
+requêtes SQL.
+
+Le Service applique les règles métier et coordonne les différentes
+opérations.
+
+---
+
+#### 2. Comprendre les transactions SQL
+
+Il a fallu comprendre le fonctionnement de :
+
+```php
+beginTransaction()
+commit()
+rollBack()
+```
+
+La transaction permet de considérer toutes les opérations d'une
+vente comme une seule opération.
+
+---
+
+#### 3. Vérifier le stock avant la vente
+
+Il fallait empêcher une vente lorsque la quantité demandée dépasse
+le stock disponible.
+
+La solution consiste donc à vérifier le stock avant de le diminuer.
+
+```text
+Stock suffisant ?
+      ↓
+   Oui → continuer
+   Non → refuser la vente
+```
+
+---
+
+#### 4. Gérer la limite de crédit
+
+Il fallait déterminer le montant réellement soumis à la limite de
+crédit.
+
+Par exemple :
+
+```text
+Total = 50 000 FCFA
+Versé = 20 000 FCFA
+Reste = 30 000 FCFA
+```
+
+C'est donc le montant restant qui doit être contrôlé.
+
+---
+
+#### 5. Déterminer où placer les requêtes SQL
+
+Au début, les requêtes `INSERT INTO` étaient directement placées
+dans `VenteService`.
+
+Après réflexion, elles ont été déplacées vers `VenteRepository`.
+
+Cette organisation permet de respecter la séparation entre la
+logique métier et l'accès aux données.
+
+---
+
+### 💡 Solutions apportées
+
+Pour résoudre ces difficultés :
+
+* création du `VenteService` ;
+* utilisation des Repositories existants ;
+* calcul du total à partir du panier ;
+* vérification du stock avant la vente ;
+* vérification de la limite de crédit ;
+* utilisation de `beginTransaction()` ;
+* utilisation de `commit()` lorsque tout fonctionne ;
+* utilisation de `rollBack()` lorsqu'une erreur survient ;
+* déplacement des requêtes SQL dans les Repositories ;
+* séparation de la logique métier et de l'accès aux données.
+
+---
 
 
 
