@@ -1,18 +1,23 @@
-
 <?php
 
 namespace App\Model\Repository;
 
+use App\Core\Database;
 use App\Model\Entity\Fournisseur;
 use PDO;
 
-class FournisseurRepository extends BaseRepository
+class FournisseurRepository
 {
-    public function getAllFournisseurs(): array
+    private function __construct()
     {
+    }
+
+    public static function getAllFournisseurs(): array
+    {
+        $pdo = Database::getConnection();
+
         $sql = "
             SELECT
-                id,
                 nom,
                 email,
                 telephone,
@@ -21,13 +26,14 @@ class FournisseurRepository extends BaseRepository
             ORDER BY id DESC
         ";
 
-        $stmt = $this->execute($sql);
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute();
 
         $fournisseurs = [];
 
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+
             $fournisseurs[] = new Fournisseur(
-                $row['id'],
                 $row['nom'],
                 $row['email'],
                 $row['telephone'],
@@ -38,11 +44,14 @@ class FournisseurRepository extends BaseRepository
         return $fournisseurs;
     }
 
-    public function findFournisseurById(int $id): ?Fournisseur
-    {
+    public static function findFournisseurById(
+        int $id
+    ): ?Fournisseur {
+
+        $pdo = Database::getConnection();
+
         $sql = "
             SELECT
-                id,
                 nom,
                 email,
                 telephone,
@@ -51,7 +60,9 @@ class FournisseurRepository extends BaseRepository
             WHERE id = :id
         ";
 
-        $stmt = $this->execute($sql, [
+        $stmt = $pdo->prepare($sql);
+
+        $stmt->execute([
             'id' => $id
         ]);
 
@@ -62,7 +73,6 @@ class FournisseurRepository extends BaseRepository
         }
 
         return new Fournisseur(
-            $row['id'],
             $row['nom'],
             $row['email'],
             $row['telephone'],

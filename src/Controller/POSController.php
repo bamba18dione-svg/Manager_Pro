@@ -5,55 +5,61 @@ require_once dirname(__DIR__) .'/Repository/ClientRepository.php';
 require_once dirname(__DIR__) .'/Service/VenteService.php';
 
 
-class POSController {
 
-    private ProduitRepository $produitRepository;
-    private ClientRepository $clientRepository;
-    private VenteService $venteService;
-
-    public function __construct()
+class POSController
+{
+    private function __construct()
     {
-        $this->produitRepository = new ProduitRepository();
-        $this->clientRepository = new ClientRepository();
-        $this->venteService = new VenteService();
     }
 
-      //Afficher la caisse
-     
-    public function index(): void
+    public static function index(): void
     {
-        $produits = $this->produitRepository->getAllProduit();
-        $clients = $this->clientRepository->getAllClients();
+        $produits =
+            ProduitRepository::getAllProduit();
 
+        $clients =
+            ClientRepository::getAllClients();
+
+       
     }
 
-      //Enregistrer une vente
-     
-    public function vendre(): void
+    public static function vendre(): void
     {
-        $panier = $_POST['panier'] ?? [];
+        $panier =
+            $_POST['panier'] ?? [];
 
-        $clientId = !empty($_POST['client_id'])
-            ? (int) $_POST['client_id']
-            : null;
+        $clientId =
+            !empty($_POST['client_id'])
+                ? (int) $_POST['client_id']
+                : null;
 
-        $montantVerse = (float) ($_POST['montant_verse'] ?? 0);
+        $montantVerse =
+            (float) ($_POST['montant_verse'] ?? 0);
 
         try {
 
-            $this->venteService->enregistrerVente($panier, $clientId, $montantVerse);
+            VenteService::enregistrerVente(
+                $panier,
+                $clientId,
+                $montantVerse
+            );
 
-            $message = "Vente enregistrée avec succès.";
+            $message =
+                "Vente enregistrée avec succès.";
 
         } catch (\Exception $e) {
 
-            $message = $e->getMessage();
+            $message =
+                $e->getMessage();
         }
 
-        // Recharger les données après la vente
+        $produits =
+            ProduitRepository::getAllProduit();
 
-        $produits = $this->produitRepository->getAllProduit();
-        $clients = $this->clientRepository->getAllClients();
+        $clients =
+            ClientRepository::getAllClients();
 
+        
+            
     }
-}    
+} 

@@ -1,65 +1,69 @@
-
 <?php
 
-
-use DateTime;
+namespace App\Model\Entity;
 
 class Approvisionnement
 {
-    private int $id;
     private string $referenceBl;
     private float $coutTotal;
-    private DateTime $dateAppro;
-    private ?DateTime $dateReception;
+    private \DateTime $dateAppro;
+    private ?\DateTime $dateReception;
     private string $statut;
-    private string $created_at;
 
     private Fournisseur $fournisseur;
     private ?Utilisateur $utilisateur;
 
+    private array $lignesApprovisionnement = [];
+
     public function __construct(
-        int $id,
         string $referenceBl,
-        float $coutTotal = 0,
-        ?DateTime $dateAppro = null,
-        ?DateTime $dateReception = null,
-        string $statut = 'EN_ATTENTE',
-        Fournisseur $fournisseur = null,
-        ?Utilisateur $utilisateur = null,
-        string $created_at = ''
+        Fournisseur $fournisseur,
+        ?Utilisateur $utilisateur = null
     ) {
-        $this->id = $id;
         $this->referenceBl = $referenceBl;
-        $this->coutTotal = $coutTotal;
-        $this->dateAppro = $dateAppro ?? new DateTime();
-        $this->dateReception = $dateReception;
-        $this->statut = $statut;
         $this->fournisseur = $fournisseur;
         $this->utilisateur = $utilisateur;
-        $this->created_at = $created_at;
+
+        $this->coutTotal = 0;
+        $this->dateAppro = new \DateTime();
+        $this->dateReception = null;
+        $this->statut = 'EN_ATTENTE';
     }
 
     public function isReceived(): bool
     {
-        return $this->dateReception !== null;
+        return $this->statut === 'RECU';
     }
 
     public function calculateTotal(): float
     {
-        return $this->coutTotal;
+        $total = 0;
+
+        foreach ($this->lignesApprovisionnement as $ligne) {
+            $total += $ligne->calculateSubTotal();
+        }
+
+        return $total;
+    }
+
+    public function addLigne(
+        LigneApprovisionnement $ligne
+    ): void {
+        $this->lignesApprovisionnement[] = $ligne;
     }
 
     public function updateStatut(): void
     {
-        if ($this->isReceived()) {
-            $this->statut = 'RECU';
-        } else {
-            $this->statut = 'EN_ATTENTE';
-        }
+        $this->coutTotal = $this->calculateTotal();
     }
 
     public function getLignesApprovisionnement(): array
     {
-        return [];
+        return $this->lignesApprovisionnement;
+    }
+
+    public function getFournisseur(): Fournisseur
+    {
+        return $this->fournisseur;
     }
 }

@@ -1,37 +1,30 @@
-
 <?php
 
-
+namespace App\Model\Entity;
 
 class Client
 {
-    private int $id;
     private string $nom;
     private string $prenom;
     private ?string $telephone;
     private ?string $email;
     private float $limiteCredit;
     private float $soldeActuel;
-    private string $created_at;
 
     public function __construct(
-        int $id,
         string $nom,
         string $prenom,
-        float $limiteCredit = 0,
-        float $soldeActuel = 0,
-        ?string $telephone = null,
-        ?string $email = null,
-        string $created_at = ''
+        ?string $telephone,
+        ?string $email,
+        float $limiteCredit,
+        float $soldeActuel
     ) {
-        $this->id = $id;
         $this->nom = $nom;
         $this->prenom = $prenom;
-        $this->limiteCredit = $limiteCredit;
-        $this->soldeActuel = $soldeActuel;
         $this->telephone = $telephone;
         $this->email = $email;
-        $this->created_at = $created_at;
+        $this->limiteCredit = $limiteCredit;
+        $this->soldeActuel = $soldeActuel;
     }
 
     public function getFullName(): string
@@ -39,9 +32,19 @@ class Client
         return $this->prenom . ' ' . $this->nom;
     }
 
+    public function getLimiteCredit(): float
+    {
+        return $this->limiteCredit;
+    }
+
+    public function getSoldeActuel(): float
+    {
+        return $this->soldeActuel;
+    }
+
     public function getCreditRemaining(): float
     {
-        return max(0, $this->limiteCredit - $this->soldeActuel);
+        return $this->limiteCredit - $this->soldeActuel;
     }
 
     public function canAfford(float $montant): bool
@@ -51,15 +54,12 @@ class Client
 
     public function updateSolde(float $montant): void
     {
-        $this->soldeActuel += $montant;
+        $nouveauSolde = $this->soldeActuel + $montant;
 
-        if ($this->soldeActuel < 0) {
-            $this->soldeActuel = 0;
+        if ($nouveauSolde < 0) {
+            throw new \Exception("Le solde ne peut pas être négatif.");
         }
-    }
 
-    public function getDettesActives(): array
-    {
-        return [];
+        $this->soldeActuel = $nouveauSolde;
     }
 }

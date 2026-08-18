@@ -1,15 +1,12 @@
-
 <?php
 
-
-use DateTime;
+namespace App\Model\Entity;
 
 class Paiement
 {
-    private int $id;
     private float $montant;
     private ?string $notes;
-    private DateTime $datePaiement;
+    private \DateTime $datePaiement;
     private string $reference;
 
     private Dette $dette;
@@ -17,32 +14,39 @@ class Paiement
     private ?Utilisateur $utilisateur;
 
     public function __construct(
-        int $id,
         float $montant,
-        string $reference,
         Dette $dette,
         ModePaiement $modePaiement,
+        string $reference,
         ?string $notes = null,
-        ?DateTime $datePaiement = null,
         ?Utilisateur $utilisateur = null
     ) {
-        $this->id = $id;
         $this->montant = $montant;
-        $this->reference = $reference;
         $this->dette = $dette;
         $this->modePaiement = $modePaiement;
+        $this->reference = $reference;
         $this->notes = $notes;
-        $this->datePaiement = $datePaiement ?? new DateTime();
         $this->utilisateur = $utilisateur;
-    }
-
-    public function getFormattedDate(): string
-    {
-        return $this->datePaiement->format('d/m/Y H:i');
+        $this->datePaiement = new \DateTime();
     }
 
     public function getMontant(): float
     {
         return $this->montant;
+    }
+
+    public function getDette(): Dette
+    {
+        return $this->dette;
+    }
+
+    public function getModePaiement(): ModePaiement
+    {
+        return $this->modePaiement;
+    }
+
+    public function getReference(): string
+    {
+        return $this->reference;
     }
 }

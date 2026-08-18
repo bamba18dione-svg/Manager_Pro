@@ -1,44 +1,48 @@
-
 <?php
 
+namespace App\Model\Entity;
 
 class Fournisseur
 {
-    private int $id;
     private string $nom;
     private ?string $email;
     private ?string $telephone;
     private ?string $adresse;
-    private string $created_at;
 
     public function __construct(
-        int $id,
         string $nom,
         ?string $email = null,
         ?string $telephone = null,
-        ?string $adresse = null,
-        string $created_at = ''
+        ?string $adresse = null
     ) {
-        $this->id = $id;
         $this->nom = $nom;
         $this->email = $email;
         $this->telephone = $telephone;
         $this->adresse = $adresse;
-        $this->created_at = $created_at;
+    }
+
+    public function getNom(): string
+    {
+        return $this->nom;
+    }
+
+    public function getEmail(): ?string
+    {
+        return $this->email;
+    }
+
+    public function getTelephone(): ?string
+    {
+        return $this->telephone;
+    }
+
+    public function getAdresse(): ?string
+    {
+        return $this->adresse;
     }
 
     public function getContact(): string
     {
-        return $this->telephone ?? '';
-    }
-
-    public function getSolde(): float
-    {
-        return 0;
-    }
-
-    public function getApprovisionnements(): array
-    {
-        return [];
+        return $this->telephone ?? $this->email ?? '';
     }
 }

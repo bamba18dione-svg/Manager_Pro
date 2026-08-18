@@ -1,55 +1,78 @@
-
-
 <?php
 
 namespace App\Model\Repository;
 
+use App\Core\Database;
 use App\Model\Entity\Produit;
 use PDO;
 
-class ProduitRepository extends BaseRepository
+class ProduitRepository
 {
-    public function getAllProduit(): array
+    private function __construct()
     {
+    }
+
+    public static function getAllProduit(): array
+    {
+        $pdo = Database::getConnection();
+
         $sql = "
             SELECT
-                id,
+                code,
                 libelle,
+                categorie,
                 prix_vente,
-                stock_initial
+                cout_achat,
+                stock_initial,
+                stock_actuel,
+                seuil_alerte
             FROM produits
             ORDER BY id DESC
         ";
 
-        $stmt = $this->execute($sql);
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute();
 
         $produits = [];
 
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+
             $produits[] = new Produit(
-                $row['id'],
+                $row['code'],
                 $row['libelle'],
+                $row['categorie'] ?? '',
                 (float) $row['prix_vente'],
-                (int) $row['stock_initial']
+                (float) $row['cout_achat'],
+                (int) $row['stock_initial'],
+                (int) $row['stock_actuel'],
+                (int) $row['seuil_alerte']
             );
         }
 
         return $produits;
     }
 
-       public function findProduitById(int $id): ?Produit
+    public static function findProduitById(int $id): ?Produit
     {
+        $pdo = Database::getConnection();
+
         $sql = "
             SELECT
-                id,
+                code,
                 libelle,
+                categorie,
                 prix_vente,
-                stock_initial
+                cout_achat,
+                stock_initial,
+                stock_actuel,
+                seuil_alerte
             FROM produits
             WHERE id = :id
         ";
 
-        $stmt = $this->execute($sql, [
+        $stmt = $pdo->prepare($sql);
+
+        $stmt->execute([
             'id' => $id
         ]);
 
@@ -60,12 +83,14 @@ class ProduitRepository extends BaseRepository
         }
 
         return new Produit(
-            $row['id'],
+            $row['code'],
             $row['libelle'],
+            $row['categorie'] ?? '',
             (float) $row['prix_vente'],
-            (int) $row['stock_initial']
+            (float) $row['cout_achat'],
+            (int) $row['stock_initial'],
+            (int) $row['stock_actuel'],
+            (int) $row['seuil_alerte']
         );
     }
 }
-
-

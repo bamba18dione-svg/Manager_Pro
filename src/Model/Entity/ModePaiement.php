@@ -1,19 +1,16 @@
-
 <?php
 
+namespace App\Model\Entity;
 
 class ModePaiement
 {
-    private int $id;
     private string $nom;
     private ?string $description;
 
     public function __construct(
-        int $id,
         string $nom,
         ?string $description = null
     ) {
-        $this->id = $id;
         $this->nom = $nom;
         $this->description = $description;
     }
@@ -21,5 +18,10 @@ class ModePaiement
     public function getNom(): string
     {
         return $this->nom;
+    }
+
+    public function getDescription(): ?string
+    {
+        return $this->description;
     }
 }

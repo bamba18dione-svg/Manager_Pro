@@ -1,76 +1,80 @@
-
 <?php
 
-
-use DateTime;
+namespace App\Model\Entity;
 
 class Vente
 {
-    private int $id;
     private string $numeroFacture;
     private float $montantTotal;
     private float $montantVerse;
-    private ?string $modeReglement;
+    private string $modeReglement;
     private string $statut;
-    private DateTime $dateVente;
-    private ?DateTime $dateEcheance;
-    private string $created_at;
 
-    private ?Utilisateur $utilisateur;
+    private \DateTime $dateVente;
+    private ?\DateTime $dateEcheance;
+
+    private Utilisateur $utilisateur;
     private ?Client $client;
 
+    private array $lignesVente = [];
+
     public function __construct(
-        int $id,
         string $numeroFacture,
         float $montantTotal,
-        float $montantVerse = 0,
-        ?string $modeReglement = null,
-        string $statut = 'EN_ATTENTE',
-        ?DateTime $dateVente = null,
-        ?DateTime $dateEcheance = null,
-        ?Utilisateur $utilisateur = null,
-        ?Client $client = null,
-        string $created_at = ''
+        float $montantVerse,
+        string $modeReglement,
+        Utilisateur $utilisateur,
+        ?Client $client = null
     ) {
-        $this->id = $id;
         $this->numeroFacture = $numeroFacture;
         $this->montantTotal = $montantTotal;
         $this->montantVerse = $montantVerse;
         $this->modeReglement = $modeReglement;
-        $this->statut = $statut;
-        $this->dateVente = $dateVente ?? new DateTime();
-        $this->dateEcheance = $dateEcheance;
         $this->utilisateur = $utilisateur;
         $this->client = $client;
-        $this->created_at = $created_at;
+
+        $this->dateVente = new \DateTime();
+
+        $this->statut =
+            $montantVerse >= $montantTotal
+                ? 'PAYEE'
+                : 'CREDIT';
     }
 
     public function getRemainingAmount(): float
     {
-        return max(0, $this->montantTotal - $this->montantVerse);
+        return $this->montantTotal - $this->montantVerse;
     }
 
     public function isFullyPaid(): bool
     {
-        return $this->getRemainingAmount() == 0;
+        return $this->getRemainingAmount() <= 0;
     }
 
     public function updateStatus(): void
     {
-        if ($this->isFullyPaid()) {
-            $this->statut = 'PAYEE';
-        } else {
-            $this->statut = 'EN_ATTENTE';
-        }
+        $this->statut = $this->isFullyPaid()
+            ? 'PAYEE'
+            : 'CREDIT';
     }
 
-    public function getMontantRestant(): float
+    public function addLigne(LigneVente $ligne): void
     {
-        return $this->getRemainingAmount();
+        $this->lignesVente[] = $ligne;
     }
 
     public function getLignesVente(): array
     {
-        return [];
+        return $this->lignesVente;
+    }
+
+    public function getClient(): ?Client
+    {
+        return $this->client;
+    }
+
+    public function getUtilisateur(): Utilisateur
+    {
+        return $this->utilisateur;
     }
 }

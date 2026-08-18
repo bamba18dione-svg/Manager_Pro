@@ -1,18 +1,23 @@
-
 <?php
 
 namespace App\Model\Repository;
 
+use App\Core\Database;
 use App\Model\Entity\Client;
 use PDO;
 
-class ClientRepository extends BaseRepository
+class ClientRepository
 {
-    public function getAllClients(): array
+    private function __construct()
     {
+    }
+
+    public static function getAllClients(): array
+    {
+        $pdo = Database::getConnection();
+
         $sql = "
             SELECT
-                id,
                 nom,
                 prenom,
                 telephone,
@@ -23,13 +28,14 @@ class ClientRepository extends BaseRepository
             ORDER BY id DESC
         ";
 
-        $stmt = $this->execute($sql);
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute();
 
         $clients = [];
 
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+
             $clients[] = new Client(
-                $row['id'],
                 $row['nom'],
                 $row['prenom'],
                 $row['telephone'],
@@ -42,11 +48,12 @@ class ClientRepository extends BaseRepository
         return $clients;
     }
 
-    public function findClientById(int $id): ?Client
+    public static function findClientById(int $id): ?Client
     {
+        $pdo = Database::getConnection();
+
         $sql = "
             SELECT
-                id,
                 nom,
                 prenom,
                 telephone,
@@ -57,7 +64,9 @@ class ClientRepository extends BaseRepository
             WHERE id = :id
         ";
 
-        $stmt = $this->execute($sql, [
+        $stmt = $pdo->prepare($sql);
+
+        $stmt->execute([
             'id' => $id
         ]);
 
@@ -68,7 +77,6 @@ class ClientRepository extends BaseRepository
         }
 
         return new Client(
-            $row['id'],
             $row['nom'],
             $row['prenom'],
             $row['telephone'],
@@ -78,4 +86,3 @@ class ClientRepository extends BaseRepository
         );
     }
 }
-

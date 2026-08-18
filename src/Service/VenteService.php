@@ -10,81 +10,91 @@ use Exception;
 
 class VenteService
 {
-    private PDO $pdo;
-    private ProduitRepository $produitRepository;
-    private ClientRepository $clientRepository;
-
-    public function __construct()
+    private function __construct()
     {
-        $this->pdo = Database::getInstance()->getConnection();
-
-        $this->produitRepository = new ProduitRepository();
-        $this->clientRepository = new ClientRepository();
     }
 
-    public function calculerTotal(array $panier): float
+    public static function calculerTotal(array $panier): float
     {
         $total = 0;
 
         foreach ($panier as $ligne) {
-            $total += $ligne['prix'] * $ligne['quantite'];
+            $total +=
+                $ligne['prix'] *
+                $ligne['quantite'];
         }
 
         return $total;
     }
 
-    private function verifierStock(array $panier): void
-    {
+    private static function verifierStock(
+        array $panier
+    ): void {
+
         foreach ($panier as $ligne) {
 
-            $produit = $this->produitRepository
-                ->findProduitById($ligne['produit_id']);
+            $produit =
+                ProduitRepository::findProduitById(
+                    $ligne['produit_id']
+                );
 
             if ($produit === null) {
                 throw new Exception(
-                    "Produit introuvable : " . $ligne['produit_id']
+                    "Produit introuvable."
                 );
             }
 
-            if ($produit->getStockActuel() < $ligne['quantite']) {
+            if (
+                $produit->getStockActuel()
+                < $ligne['quantite']
+            ) {
                 throw new Exception(
-                    "Stock insuffisant pour le produit : "
+                    "Stock insuffisant pour : "
                     . $produit->getLibelle()
                 );
             }
         }
     }
 
-    private function verifierCredit(
+    private static function verifierCredit(
         int $clientId,
         float $montant
     ): void {
 
-        $client = $this->clientRepository
-            ->findClientById($clientId);
+        $client =
+            ClientRepository::findClientById(
+                $clientId
+            );
 
         if ($client === null) {
-            throw new Exception("Client introuvable.");
+            throw new Exception(
+                "Client introuvable."
+            );
         }
 
         if (!$client->canAfford($montant)) {
             throw new Exception(
-                "La limite de crédit du client est dépassée."
+                "Limite de crédit dépassée."
             );
         }
     }
 
-    private function diminuerStock(array $panier): void
-    {
+    private static function diminuerStock(
+        array $panier
+    ): void {
+
+        $pdo = Database::getConnection();
+
         foreach ($panier as $ligne) {
 
             $sql = "
                 UPDATE produits
-                SET stock_actuel = stock_actuel - :quantite
+                SET stock_actuel =
+                    stock_actuel - :quantite
                 WHERE id = :id
             ";
 
-            $stmt = $this->pdo->prepare($sql);
+            $stmt = $pdo->prepare($sql);
 
             $stmt->execute([
                 'quantite' => $ligne['quantite'],
@@ -93,43 +103,73 @@ class VenteService
         }
     }
 
-    public function enregistrerVente(array $panier, ?int $clientId, float $montantVerse): bool {
+    public static function enregistrerVente(
+        array $panier,
+        ?int $clientId,
+        float $montantVerse
+    ): bool {
 
         if (empty($panier)) {
-            throw new Exception("Le panier est vide.");
+            throw new Exception(
+                "Le panier est vide."
+            );
         }
 
-        $total = $this->calculerTotal($panier);
+        $pdo = Database::getConnection();
+
+        $total = self::calculerTotal($panier);
 
         try {
-            $this->pdo->beginTransaction();
 
-            $this->verifierStock($panier);
+            $pdo->beginTransaction();
+
+            self::verifierStock($panier);
 
             if ($clientId !== null) {
-                $reste = $total - $montantVerse;
+
+                $reste =
+                    $total - $montantVerse;
 
                 if ($reste > 0) {
-                    $this->verifierCredit($clientId, $reste);
+                    self::verifierCredit(
+                        $clientId,
+                        $reste
+                    );
                 }
             }
 
-            $this->diminuerStock($panier);
+            self::diminuerStock($panier);
 
-             // 4. Créer la vente
             $sql = "
-                INSERT INTO ventes(numero_facture, montant_total, montant_verse, statut, utilisateur_id, client_id)
-
-                VALUES (:numero_facture, :montant_total, :montant_verse, :statut, :utilisateur_id, :client_id)  
+                INSERT INTO ventes
+                (
+                    numero_facture,
+                    montant_total,
+                    montant_verse,
+                    statut,
+                    utilisateur_id,
+                    client_id
+                )
+                VALUES
+                (
+                    :numero_facture,
+                    :montant_total,
+                    :montant_verse,
+                    :statut,
+                    :utilisateur_id,
+                    :client_id
+                )
             ";
 
-            $stmt = $this->pdo->prepare($sql);
+            $stmt = $pdo->prepare($sql);
 
-            $numeroFacture = "FAC-" . time();
+            $numeroFacture =
+                "FAC-" . time();
 
-            $statut = $montantVerse >= $total
-                ? "PAYEE"
-                : "CREDIT";
+            $statut =
+                $montantVerse >= $total
+                    ? "PAYEE"
+                    : "CREDIT";
 
             $stmt->execute([
                 'numero_facture' => $numeroFacture,
@@ -140,21 +180,35 @@ class VenteService
                 'client_id' => $clientId
             ]);
 
-            $venteId = $this->pdo->lastInsertId();
+            $venteId =
+                $pdo->lastInsertId();
 
-            // 5. Enregistrer les lignes de vente
             foreach ($panier as $ligne) {
 
-                $sql = "
-                    INSERT INTO lignes_vente(vente_id, produit_id, quantite, prix_unitaire, sous_total)
+                $sousTotal =
+                    $ligne['prix']
+                    * $ligne['quantite'];
 
-                    VALUES(:vente_id, :produit_id, :quantite, :prix_unitaire,  :sous_total )       
+                $sql = "
+                    INSERT INTO lignes_vente
+                    (
+                        vente_id,
+                        produit_id,
+                        quantite,
+                        prix_unitaire,
+                        sous_total
+                    )
+                    VALUES
+                    (
+                        :vente_id,
+                        :produit_id,
+                        :quantite,
+                        :prix_unitaire,
+                        :sous_total
+                    )
                 ";
 
-                $stmt = $this->pdo->prepare($sql);
-
-                $sousTotal =
-                    $ligne['prix'] * $ligne['quantite'];
+                $stmt = $pdo->prepare($sql);
 
                 $stmt->execute([
                     'vente_id' => $venteId,
@@ -165,14 +219,14 @@ class VenteService
                 ]);
             }
 
-            $this->pdo->commit();
+            $pdo->commit();
 
             return true;
 
         } catch (Exception $e) {
 
-            if ($this->pdo->inTransaction()) {
-                $this->pdo->rollBack();
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
             }
 
             throw $e;
