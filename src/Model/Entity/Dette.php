@@ -1,78 +1,90 @@
+
 <?php
 
-namespace App\Model\Entity;
+
+
+use DateTime;
 
 class Dette
 {
+    private int $id;
     private string $ref;
     private float $montantInitial;
     private float $montantVerse;
     private float $montantRestant;
-    private \DateTime $dateEcheance;
+    private ?DateTime $dateEcheance;
     private string $statut;
+    private string $created_at;
 
     private Client $client;
     private ?Vente $vente;
 
     public function __construct(
+        int $id,
         string $ref,
         float $montantInitial,
-        Client $client,
+        float $montantVerse = 0,
+        ?float $montantRestant = null,
+        ?DateTime $dateEcheance = null,
+        string $statut = 'EN_COURS',
+        Client $client = null,
         ?Vente $vente = null,
-        ?\DateTime $dateEcheance = null
+        string $created_at = ''
     ) {
+        $this->id = $id;
         $this->ref = $ref;
         $this->montantInitial = $montantInitial;
-        $this->montantVerse = 0;
-        $this->montantRestant = $montantInitial;
+        $this->montantVerse = $montantVerse;
+        $this->montantRestant =
+            $montantRestant ?? ($montantInitial - $montantVerse);
+        $this->dateEcheance = $dateEcheance;
+        $this->statut = $statut;
         $this->client = $client;
         $this->vente = $vente;
-        $this->dateEcheance = $dateEcheance ?? new \DateTime();
-        $this->statut = 'EN_COURS';
+        $this->created_at = $created_at;
     }
 
     public function getResteDu(): float
     {
-        return $this->montantRestant;
+        return max(0, $this->montantInitial - $this->montantVerse);
     }
 
     public function isSold(): bool
     {
-        return $this->montantRestant <= 0;
+        return $this->getResteDu() == 0;
     }
 
     public function applyPayment(float $montant): void
     {
         if ($montant <= 0) {
-            throw new \Exception("Le paiement doit être positif.");
+            throw new \InvalidArgumentException(
+                "Le montant du paiement doit être positif."
+            );
         }
 
-        if ($montant > $this->montantRestant) {
-            throw new \Exception(
+        if ($montant > $this->getResteDu()) {
+            throw new \InvalidArgumentException(
                 "Le paiement dépasse le montant restant."
             );
         }
 
         $this->montantVerse += $montant;
-        $this->montantRestant -= $montant;
+        $this->montantRestant = $this->getResteDu();
 
         $this->updateStatut();
     }
 
     public function updateStatut(): void
     {
-        $this->statut = $this->isSold()
-            ? 'SOLDEE'
-            : 'EN_COURS';
+        if ($this->isSold()) {
+            $this->statut = 'SOLDEE';
+        } else {
+            $this->statut = 'EN_COURS';
+        }
     }
 
-    public function getClient(): Client
+    public function getPaiements(): array
     {
-        return $this->client;
-    }
-
-    public function getVente(): ?Vente
-    {
-        return $this->vente;
+        return [];
     }
 }
